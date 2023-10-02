@@ -1,0 +1,79 @@
+---
+title: "R Markdown with codes to reproduce Figures of the publication Climatic and cave settings influence on drip water fluorescent organic matter with implications for fluorescent lamination in stalagmites"
+author: "Laura Endres"
+date: "2023-10-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Fig. 1
+NA
+
+## Fig. 2
+
+```{r cars}
+summary(cars)
+```
+
+## Fig. 3
+
+## Fig. 4
+```{r Fig4)}
+# Libraries needed to plot absorbance data 
+library(ggplot2)
+library(ggpubr)
+library(zoo)
+library(scico)
+
+# Data
+aps.master <- readRDS(file="Data/APSmaster.rds")
+aps.master$loc <- as.factor(aps.master$loc)
+abs350_t <- readRDS(file="Data/abs350_t.rds")
+
+colores <- scico(7,palette="romaO",begin = 0.1,
+                 end = 0.9) #Color assignment
+
+# Plotting
+v <- 
+  aps.master %>%
+  mutate(loc = fct_relevel(loc, 
+                           "FOR","SNO", "GLO","GRA","PLA","SKY","MUS")) %>%
+  ggplot(aes(x=loc,y=sloperatio)) +geom_jitter(aes(color=loc),width=0.1,alpha=0.5) + theme_classic2(base_size=9) + stat_boxplot(outlier.shape=NA,fill=NA) +
+  labs(x="Sampling location",y="Slope ratio",color="Location")+
+  scale_color_scico_d(palette="romaO",begin = 0.1,
+                      end = 0.9)+
+  theme(axis.text.x=element_text(angle=60, hjust=1),legend.position="none")
+
+a <- 
+  abs350_t %>% group_by(loc) %>% filter(loc %in% c("FOR","SNO", "GLO","GRA","PLA","SKY","MUS")) %>%
+  summarise_all(median,na.rm=TRUE) %>% mutate(loc = fct_relevel(loc, 
+                                                              "FOR","SNO", "GLO","GRA","PLA","SKY","MUS"))  %>% 
+  gather("param","value",-loc) %>% 
+  ggplot(aes(x=as.numeric(param),y=as.numeric(value),color=loc)) +
+  geom_smooth(se=FALSE,na.rm=TRUE,span=0.1,alpha=0.25,linewidth=0.5) + 
+  coord_cartesian(xlim = c(200,500),
+                  ylim = c(0,40)) + theme_classic2(base_size = 9) +
+  labs(x="Wavelength (nm)",y="Absorption coefficient [m^-1]",color="Location")+
+  scale_color_scico_d(palette="romaO",begin = 0.1,
+                      end = 0.9) + theme(legend.position = c(0.9, 0.55),
+                                         legend.title=element_text(size=8), 
+                                         legend.text=element_text(size=7),
+                                         #legend.background = element_rect(fill = "white", color = "black")
+                                         ) + scale_y_continuous(trans='sqrt')
+
+
+a/v + plot_annotation(tag_levels = 'A')
+#ggsave(filename="Endres_Fig4.tiff",height=160*1.3,width=80*1.3,units='mm',dpi=600)
+
+```
+
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
