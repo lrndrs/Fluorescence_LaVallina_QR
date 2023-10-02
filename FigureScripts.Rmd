@@ -22,10 +22,13 @@ summary(cars)
 ## Fig. 4
 ```{r Fig4)}
 # Libraries needed to plot absorbance data 
+library(tidyverse)
 library(ggplot2)
 library(ggpubr)
 library(zoo)
 library(scico)
+library(plotly)
+
 
 # Data
 aps.master <- readRDS(file="Data/APSmaster.rds")
@@ -63,8 +66,8 @@ a <-
                                          #legend.background = element_rect(fill = "white", color = "black")
                                          ) + scale_y_continuous(trans='sqrt')
 
-
-a/v + plot_annotation(tag_levels = 'A')
+subplot(a,v,nrows=2) #alternative just for markdown
+#a/v + plot_annotation(tag_levels = 'A') 
 #ggsave(filename="Endres_Fig4.tiff",height=160*1.3,width=80*1.3,units='mm',dpi=600)
 
 ```
