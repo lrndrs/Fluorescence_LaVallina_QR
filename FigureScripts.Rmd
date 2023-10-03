@@ -6,7 +6,10 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+#knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
+
 ```
 ## Fig. 1
 NA
@@ -73,10 +76,322 @@ subplot(a,v,nrows=2) #alternative just for markdown
 ```
 
 
-You can also embed plots, for example:
+## Fig. 5
+```{r Fig. 5, echo=TRUE}
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+### Figure Spatial Temporal variances
+## A: AVG and SD arrays
+## B: PARAFAC Time series
+
+library(tidyverse)
+library(ggplot2)
+library(stringr)
+library(eemR)
+library(scico)
+
+
+## Load EEMs
+FOR_eem <- readRDS(file="Data/EEM/FOR_eem.rds")
+SNO_eem <- readRDS(file="Data/EEM/SNO_eem.rds")
+GLO_eem <- readRDS(file="Data/EEM/GLO_eem.rds")
+GRA_eem <- readRDS(file="Data/EEM/GRA_eem.rds")
+PLA_eem <- readRDS(file="Data/EEM/PLA_eem.rds")
+SKY_eem <- readRDS(file="Data/EEM/SKY_eem.rds")
+MUS_eem <- readRDS(file="Data/EEM/MUS_eem.rds")
+
+#Calculate AVG and SD matrices
+my.list <- list()
+for (i in 1:length(FOR_eem)){my.list[[i]]<-FOR_eem[[i]]$x}
+FOR_avg <- apply(simplify2array(my.list), 1:2, mean)
+FOR_sd <- apply(simplify2array(my.list), 1:2, sd)
+
+my.list <- list()
+for (i in 1:length(SNO_eem)){my.list[[i]]<-SNO_eem[[i]]$x}
+SNO_avg <- apply(simplify2array(my.list), 1:2, mean)
+SNO_sd <- apply(simplify2array(my.list), 1:2, sd)
+
+my.list <- list()
+for (i in 1:length(GLO_eem)){my.list[[i]]<-GLO_eem[[i]]$x}
+GLO_avg <- apply(simplify2array(my.list), 1:2, mean)
+GLO_sd <- apply(simplify2array(my.list), 1:2, sd)
+
+my.list <- list()
+for (i in 1:length(GRA_eem)){my.list[[i]]<-GRA_eem[[i]]$x}
+GRA_avg <- apply(simplify2array(my.list), 1:2, mean)
+GRA_sd <- apply(simplify2array(my.list), 1:2, sd)
+
+my.list <- list()
+for (i in 1:length(SKY_eem)){my.list[[i]]<-SKY_eem[[i]]$x}
+SKY_avg <- apply(simplify2array(my.list), 1:2, mean)
+SKY_sd <- apply(simplify2array(my.list), 1:2, sd)
+
+my.list <- list()
+for (i in 1:length(PLA_eem)){my.list[[i]]<-PLA_eem[[i]]$x}
+PLA_avg <- apply(simplify2array(my.list), 1:2, mean)
+PLA_sd <- apply(simplify2array(my.list), 1:2, sd)
+
+my.list <- list()
+for (i in 1:length(MUS_eem)){my.list[[i]]<-MUS_eem[[i]]$x}
+MUS_avg <- apply(simplify2array(my.list), 1:2, mean)
+MUS_sd <- apply(simplify2array(my.list), 1:2, sd)
+
+
+#get colors as discrete values
+colores <- scico(7,palette="romaO",begin = 0.1,
+                 end = 0.9)
+## Calculate the plots
+###Calculate AVG ggplots (Warning messages are because Ex/Em wavelength are cut with ylim)
+M1 <- matrix(FOR_avg,nrow=length(FOR_eem[[i]]$em),dimnames=list(FOR_eem[[i]]$em,FOR_eem[[i]]$ex))
+M2 <- as.data.frame(as.table(M1))
+M2$Ex <- as.numeric(as.character(M2$Var2))
+M2$Em <- as.numeric(as.character(M2$Var1))
+M2$Freq[length(M2$Freq)] <- 0.20
+p1 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks = c(-0.1,0.01,0.015,0.02,0.025,0.03,0.04,0.05,0.075,0.1,0.2,0.4)) + 
+  theme(panel.background = element_blank(),plot.title = element_text(hjust = 0.5)) + ylim(250,500) + coord_flip() + labs(subtitle="Mean EEM") + 
+  xlab(expression(atop(bold("FOR (9)"), paste("Em"))))+
+  scale_fill_scico_d(drop = FALSE,palette='batlow') +
+  #scale_fill_batlow_d(drop = FALSE) +
+  theme_minimal(base_size=10) + theme(plot.subtitle=element_text(hjust = 0.5),axis.title.y = element_text(colour=colores[1]))
+#p1
+#ggsave("04_Output/Plot/EEM/FOR.png")
+
+M1 <- matrix(SNO_avg,nrow=length(SNO_eem[[i]]$em),dimnames=list(SNO_eem[[i]]$em,SNO_eem[[i]]$ex))
+M2 <- as.data.frame(as.table(M1))
+M2$Ex <- as.numeric(as.character(M2$Var2))
+M2$Em <- as.numeric(as.character(M2$Var1))
+M2$Freq[length(M2$Freq)] <- 0.20
+p2 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks = c(-0.1,0.01,0.015,0.02,0.025,0.03,0.04,0.05,0.075,0.1,0.2,0.4)) + 
+  theme(panel.background = element_blank()) + ylim(250,500) + coord_flip() + #labs(title="SNO") +
+  xlab(expression(atop(bold("SNO (3)"), paste("Em"))))+
+  scale_fill_scico_d(drop = FALSE,palette='batlow') +theme_minimal(base_size=10) +
+  theme(axis.title.y = element_text(colour=colores[2]))
+#p
+# p2
+# ggsave("04_Output/Plot/EEM/SNO.png")
+
+M1 <- matrix(GLO_avg,nrow=length(GLO_eem[[i]]$em),dimnames=list(GLO_eem[[i]]$em,GLO_eem[[i]]$ex))
+M2 <- as.data.frame(as.table(M1))
+M2$Ex <- as.numeric(as.character(M2$Var2))
+M2$Em <- as.numeric(as.character(M2$Var1))
+M2$Freq[length(M2$Freq)] <- 0.20
+p3 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks = c(-0.1,0.01,0.015,0.02,0.025,0.03,0.04,0.05,0.075,0.1,0.2,0.4)) + 
+  theme(panel.background = element_blank()) + ylim(250,500) +  coord_flip() + #labs(title="GLO") +
+  xlab(expression(atop(bold("GLO (13)"), paste("Em"))))+
+  scale_fill_scico_d(drop = FALSE,palette='batlow',name = "Mean level (R.U.)") +theme_minimal(base_size=10)+
+  theme(axis.title.y = element_text(colour=colores[3]))
+# p3
+# ggsave("04_Output/Plot/EEM/GLO.png")
+
+M1 <- matrix(GRA_avg,nrow=length(GRA_eem[[i]]$em),dimnames=list(GRA_eem[[i]]$em,GRA_eem[[i]]$ex))
+M2 <- as.data.frame(as.table(M1))
+M2$Ex <- as.numeric(as.character(M2$Var2))
+M2$Em <- as.numeric(as.character(M2$Var1))
+M2$Freq[length(M2$Freq)] <- 0.20
+p4 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks = c(-0.1,0.01,0.015,0.02,0.025,0.03,0.04,0.05,0.075,0.1,0.2,0.4)) + 
+  theme(panel.background = element_blank()) + ylim(250,500) +  coord_flip() + #labs(title="GRA") +
+  xlab(expression(atop(bold("GRA (11)"), paste("Em"))))+
+  scale_fill_scico_d(drop = FALSE,palette='batlow') +theme_minimal(base_size=10)+
+  theme(axis.title.y = element_text(colour=colores[4]))
+# p4
+# ggsave("04_Output/Plot/EEM/GRA.png")
+
+M1 <- matrix(SKY_avg,nrow=length(SKY_eem[[i]]$em),dimnames=list(SKY_eem[[i]]$em,SKY_eem[[i]]$ex))
+M2 <- as.data.frame(as.table(M1))
+M2$Ex <- as.numeric(as.character(M2$Var2))
+M2$Em <- as.numeric(as.character(M2$Var1))
+M2$Freq[length(M2$Freq)] <- 0.20
+p5 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks = c(-0.1,0.01,0.015,0.02,0.025,0.03,0.04,0.05,0.075,0.1,0.2,0.4)) + 
+  theme(panel.background = element_blank()) + ylim(250,500) +  coord_flip() + #labs(title="SKY") +
+  xlab(expression(atop(bold("SKY (13)"), paste("Em"))))+
+  scale_fill_scico_d(drop = FALSE,palette='batlow') +theme_minimal(base_size=10)+
+  theme(axis.title.y = element_text(colour=colores[6]))
+# p5
+# ggsave("04_Output/Plot/EEM/SKY.png")
+
+M1 <- matrix(PLA_avg,nrow=length(PLA_eem[[i]]$em),dimnames=list(PLA_eem[[i]]$em,PLA_eem[[i]]$ex))
+M2 <- as.data.frame(as.table(M1))
+M2$Ex <- as.numeric(as.character(M2$Var2))
+M2$Em <- as.numeric(as.character(M2$Var1))
+M2$Freq[length(M2$Freq)] <- 0.20
+p6 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks = c(-0.1,0.01,0.015,0.02,0.025,0.03,0.04,0.05,0.075,0.1,0.2,0.4)) + 
+  theme(panel.background = element_blank()) + ylim(250,500) +  coord_flip() + #labs(title="PLA") +
+  xlab(expression(atop(bold("PLA (13)"), paste("Em"))))+
+  scale_fill_scico_d(drop = FALSE,palette='batlow') +theme_minimal(base_size=10)+
+  theme(axis.title.y = element_text(colour=colores[5]))
+# p6
+# ggsave("04_Output/Plot/EEM/PLA.png")
+
+M1 <- matrix(MUS_avg,nrow=length(MUS_eem[[i]]$em),dimnames=list(MUS_eem[[i]]$em,MUS_eem[[i]]$ex))
+M2 <- as.data.frame(as.table(M1))
+M2$Ex <- as.numeric(as.character(M2$Var2))
+M2$Em <- as.numeric(as.character(M2$Var1))
+M2$Freq[length(M2$Freq)] <- 0.20
+p7 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks = c(-0.1,0.01,0.015,0.02,0.025,0.03,0.04,0.05,0.075,0.1,0.2,0.4)) + 
+  theme(panel.background = element_blank()) + ylim(250,500) +  coord_flip() + #labs(title="MUS") +
+  xlab(expression(atop(bold("MUS (3)"), paste("Em"))))+
+  scale_fill_scico_d(drop = FALSE,palette='batlow') +theme_minimal(base_size=10)+
+  theme(axis.title.y = element_text(colour=colores[7]),axis.text.x=element_text(angle=60, hjust=1))
+# p7
+# ggsave("04_Output/Plot/EEM/MUS.png")
+
+bl2 <- colorRampPalette(c("#00195911","#001959FF"),alpha=TRUE)(7)
+
+M1 <- matrix(FOR_sd,nrow=length(FOR_eem[[i]]$em),dimnames=list(FOR_eem[[i]]$em,FOR_eem[[i]]$ex))
+M2 <- as.data.frame(as.table(M1))
+M2$Ex <- as.numeric(as.character(M2$Var2))
+M2$Em <- as.numeric(as.character(M2$Var1))
+M2$Freq[length(M2$Freq)] <- 0.20
+q1 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0.1, breaks = c(-0.1,0.01,0.02,0.03,0.05,0.1,0.2,0.4)) + 
+  theme(panel.background = element_blank(),plot.subtitle = element_text(hjust = 0.5)) + ylim(250,500) +  coord_flip() +
+  theme_minimal(base_size=10) + labs(subtitle="SD EEM") + theme(plot.subtitle = element_text(hjust = 0.5)) +
+  scale_fill_manual(values=bl2,drop=FALSE)
+
+M1 <- matrix(SNO_sd,nrow=length(SNO_eem[[i]]$em),dimnames=list(SNO_eem[[i]]$em,SNO_eem[[i]]$ex))
+M2 <- as.data.frame(as.table(M1))
+M2$Ex <- as.numeric(as.character(M2$Var2))
+M2$Em <- as.numeric(as.character(M2$Var1))
+M2$Freq[length(M2$Freq)] <- 0.20
+q2 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks = c(-0.1,0.01,0.02,0.03,0.05,0.1,0.2,0.4)) + 
+  theme(panel.background = element_blank()) + ylim(250,500) +coord_flip() +
+  theme_minimal(base_size=10) +
+  scale_fill_manual(values=bl2,drop=FALSE)
+
+M1 <- matrix(GLO_sd,nrow=length(GLO_eem[[i]]$em),dimnames=list(GLO_eem[[i]]$em,GLO_eem[[i]]$ex))
+M2 <- as.data.frame(as.table(M1))
+M2$Ex <- as.numeric(as.character(M2$Var2))
+M2$Em <- as.numeric(as.character(M2$Var1))
+M2$Freq[length(M2$Freq)] <- 0.20
+q3 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks = c(-0.1,0.01,0.02,0.03,0.05,0.1,0.2,0.4)) + 
+  theme(panel.background = element_blank()) + ylim(250,500) +coord_flip() +
+  theme_minimal(base_size=10) +
+  scale_fill_manual(values=bl2,drop=FALSE,name = "SD level (R.U.)")
+
+M1 <- matrix(GRA_sd,nrow=length(GRA_eem[[i]]$em),dimnames=list(GRA_eem[[i]]$em,GRA_eem[[i]]$ex))
+M2 <- as.data.frame(as.table(M1))
+M2$Ex <- as.numeric(as.character(M2$Var2))
+M2$Em <- as.numeric(as.character(M2$Var1))
+M2$Freq[length(M2$Freq)] <- 0.20
+q4 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks = c(-0.1,0.01,0.02,0.03,0.05,0.1,0.2,0.4)) + 
+  theme(panel.background = element_blank()) + ylim(250,500) +coord_flip() +
+  theme_minimal(base_size=10) +
+  scale_fill_manual(values=bl2,drop=FALSE)
+
+M1 <- matrix(SKY_sd,nrow=length(SKY_eem[[i]]$em),dimnames=list(SKY_eem[[i]]$em,SKY_eem[[i]]$ex))
+M2 <- as.data.frame(as.table(M1))
+M2$Ex <- as.numeric(as.character(M2$Var2))
+M2$Em <- as.numeric(as.character(M2$Var1))
+M2$Freq[length(M2$Freq)] <- 0.20
+q5 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks = c(-0.1,0.01,0.02,0.03,0.05,0.1,0.2,0.4)) + 
+  theme(panel.background = element_blank()) + ylim(250,500) +coord_flip() +
+  theme_minimal(base_size=10) +
+  scale_fill_manual(values=bl2,drop=FALSE)
+
+M1 <- matrix(PLA_sd,nrow=length(PLA_eem[[i]]$em),dimnames=list(PLA_eem[[i]]$em,PLA_eem[[i]]$ex))
+M2 <- as.data.frame(as.table(M1))
+M2$Ex <- as.numeric(as.character(M2$Var2))
+M2$Em <- as.numeric(as.character(M2$Var1))
+M2$Freq[length(M2$Freq)] <- 0.20
+q6 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks = c(-0.1,0.01,0.02,0.03,0.05,0.1,0.2,0.4)) + 
+  theme(panel.background = element_blank()) + ylim(250,500) +coord_flip() +
+  theme_minimal(base_size=10) +
+  scale_fill_manual(values=bl2,drop=FALSE)
+
+M1 <- matrix(MUS_sd,nrow=length(MUS_eem[[i]]$em),dimnames=list(MUS_eem[[i]]$em,MUS_eem[[i]]$ex))
+M2 <- as.data.frame(as.table(M1))
+M2$Ex <- as.numeric(as.character(M2$Var2))
+M2$Em <- as.numeric(as.character(M2$Var1))
+M2$Freq[length(M2$Freq)] <- 0.20
+q7 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks = c(-0.1,0.01,0.02,0.03,0.05,0.1,0.2,0.4)) + 
+  ylim(250,500) +coord_flip() +
+  theme_minimal(base_size=10) + theme(panel.background = element_blank(),axis.text.x=element_text(angle=60, hjust=1)) +
+  scale_fill_manual(values=bl2,drop=FALSE)
+
+
+
+### Compute Plot A
+library(ggpubr)  
+library(cowplot)
+library(tidyr)
+
+
+library(patchwork)
+
+#get colors as discrete values
+colores <- scico(7,palette="romaO",begin = 0.1,
+                 end = 0.9)
+
+LegendList <- list(p1 + rremove("xlab")+ rremove("x.text")+ rremove("x.ticks")+
+                     theme(legend.position="none"),
+                   q1 + rremove("xlab")+ rremove("x.text")+ rremove("x.ticks") +
+                     rremove("ylab")+ rremove("y.text")+ rremove("y.ticks")+
+                     theme(legend.position="none"),
+                   p2 + rremove("xlab")+ rremove("x.text")+ rremove("x.ticks")+
+                     theme(legend.position="none"),
+                   q2 + rremove("xlab")+ rremove("x.text")+ rremove("x.ticks") +
+                     rremove("ylab")+ rremove("y.text")+ rremove("y.ticks")+
+                     theme(legend.position="none"),
+                   p3 + rremove("xlab")+ rremove("x.text")+ rremove("x.ticks")
+                   ,
+                   q3 + rremove("xlab")+ rremove("x.text")+ rremove("x.ticks") +
+                     rremove("ylab")+ rremove("y.text")+ rremove("y.ticks"),
+                   p4 + rremove("xlab")+ rremove("x.text")+ rremove("x.ticks")+
+                     theme(legend.position="none"),
+                   q4 + rremove("xlab")+ rremove("x.text")+ rremove("x.ticks") +
+                     rremove("ylab")+ rremove("y.text")+ rremove("y.ticks")+
+                     theme(legend.position="none"),
+                   p6 + rremove("xlab")+ rremove("x.text")+ rremove("x.ticks")+
+                     theme(legend.position="none"),
+                   q6 + rremove("xlab")+ rremove("x.text")+ rremove("x.ticks") +
+                     rremove("ylab")+ rremove("y.text")+ rremove("y.ticks")+
+                     theme(legend.position="none"),
+                   p5+theme(legend.position="none") +
+                     rremove("xlab")+ rremove("x.text")+ rremove("x.ticks"),
+                   q5+theme(legend.position="none")+
+                     rremove("xlab")+ rremove("x.text")+ rremove("x.ticks")+
+                     rremove("ylab")+ rremove("y.text")+ rremove("y.ticks"),
+                   p7 + 
+                     theme(legend.position="none"),
+                   q7  +
+                     rremove("ylab")+ rremove("y.text")+ rremove("y.ticks")+
+                     theme(legend.position="none")
+)
+
+#Plot
+
+APlot <- wrap_plots(LegendList,ncol = 2,nrow = 7)
+#LegendPlot <- wrap_plots(LegendList,ncol = 2,nrow = 5)
+APlot + plot_layout(guides = "collect") + 
+  theme(legend.justification = "top")
+
+#ggsave(filename="Fig5A.tiff",width=120,height=220,units='mm',dpi=600)
+
+
+## B: stacked barplot from each location
+#load data
+library(readxl)
+df_climate2 <- readRDS(file="Data/LaVallina_Fluo.rds")
+
+# Plot
+colores <- scico(5,palette="tofino",begin = 0.1,
+                 end = 0.9)
+
+lookup <- c(C1="Comp.1",C2="Comp.2",C3="Comp.3",C4="Comp.4",C5="Comp.5")
+plotter <- df_climate2 %>% mutate(loc = fct_relevel(loc, 
+                                               "FOR","SNO", "GLO","GRA","PLA","SKY","MUS")) %>% 
+  select(loc,Comp.4,Comp.2,Comp.3,Comp.5,Comp.1) %>% rename(all_of(lookup)) %>%  
+  aggregate(. ~ loc,mean) %>% gather("comp","value",-loc) 
+  
+plotter$comp <- as.factor(plotter$comp)  
+
+plotter %>% mutate(comp = fct_relevel(comp,"C4","C2","C3","C5","C1")) %>%  
+  ggplot(aes(x=loc,y=value,fill=comp)) + xlab("Sampling location") + ylab("stacked fluorescence intensity")+labs(fill="PARAFAC \ncomponent")+
+  geom_bar(position="stack", stat="identity") +theme_classic2(base_size=8)+
+    theme(axis.text.x=element_text(angle=60, hjust=1),legend.key.size = unit(0.5, 'cm'))+
+    scale_fill_manual(values=colores,drop=FALSE)
+  
+#ggsave(filename="Fig5B.tiff",width=60,height=60,units='mm',dpi=600)
+
+
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
