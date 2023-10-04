@@ -10,16 +10,10 @@ output: html_document
 knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
 ```
 
-```
 ## Fig. 1
 NA
 
 ## Fig. 2
-
-```{r cars}
-summary(cars)
-```
-
 ## Fig. 3
 
 ## Fig. 4
@@ -77,11 +71,13 @@ subplot(a,v,nrows=2) #alternative just for markdown
 
 
 ## Fig. 5
+Spatial variability of Fluorescence in LaVallina.
+EEMs have been pre-processed with the library eemR.
 ```{r Fig. 5, echo=TRUE}
 
 ### Figure Spatial Temporal variances
 ## A: AVG and SD arrays
-## B: PARAFAC Time series
+## B: Stacked Barplot
 
 library(tidyverse)
 library(ggplot2)
@@ -394,4 +390,148 @@ plotter %>% mutate(comp = fct_relevel(comp,"C4","C2","C3","C5","C1")) %>%
 
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## Fig. 6
+```{r Fig6, echo=TRUE}
+## Library
+library(knitr)
+library(staRdom)
+library(lubridate)
+library(forcats)
+
+df <- readRDS(file="Data/LaVallina_Fluo.rds") 
+#df$Al_ppm <- as.numeric(df$Al_ppm)
+df$lubridate <- dmy(df$datee)
+
+df_long <- df %>% gather("param","value",-lubridate,-loc)
+
+var2_names <- c(
+  Comp.1 = "C1 (\"humic-like\")" ,
+  Comp.2 = "C2 (\"tyrosine-like\")" ,
+  Comp.3 = "C3 (\"fossil-like\")" ,
+  Comp.4 = "C4 (\"protein-like\")" ,
+  Comp.5 = "C5 (\"fulvic-like\")" ,
+  C_oddmean = "C1+C3+C5" ,
+  C_evenmean = "C2+C4" ,
+  C1C5ratio = "C1/C5" ,
+  C1C3ratio = "C1/C3" ,
+  C3C1ratio = "C3/C1" ,
+  C3C5ratio = "C3/C5" ,
+  sloperatio ="SR",
+  bix = "BIX",
+  fi = "FI",
+  hix = "HIX",
+  drip_d13C_DIC = "drip water d13C",
+  driprate = "drip rate",
+  logdrip = "log(drip rate)",
+  a300 = "a300_stardom"
+)
+
+
+variable_labeller <- function(variable,value){
+  return(variable_names[value])
+}
+
+capitalize <- function(string) {
+  substr(string, 1, 1) <- toupper(substr(string, 1, 1))
+  string
+}
+
+# Vegetation gradient (defines Symbol in Plot)
+df_long$loc <- as.factor(df_long$loc)
+df_long$veggradient <- 0
+df_long[df_long$loc %in% c("FOR","SNO"),]$veggradient <- "F"#Forest  
+df_long[df_long$loc %in% c("GLO","GRA"),]$veggradient <- "B" #Bush
+df_long[df_long$loc %in% c("PLA","SKY","MUS"),]$veggradient <- "P" #Pasture
+
+
+BPlot <- df_long %>% 
+  filter(param %in% c("Comp.1","Comp.2","Comp.3","Comp.4","Comp.5")) %>%
+  mutate(loc = fct_relevel(loc, 
+                           "FOR","SNO", "GLO","GRA","PLA","SKY","MUS"),
+         param = fct_relevel(param,"Comp.1","Comp.5","Comp.3","Comp.2","Comp.4")) %>%
+  ggplot(aes(y=sqrt(as.numeric(value)),x=lubridate))+
+      geom_line(mapping=aes(colour=loc)) +
+      geom_point(mapping=aes(shape=as.factor(veggradient),colour=loc)) +
+      facet_grid(loc ~ param,scales = "free",labeller=labeller(.default=capitalize,
+                                                           param=var2_names),switch="y") +
+      coord_cartesian(ylim = c(-0, 0.85)) +
+      theme_minimal() +
+      theme(axis.text.x=element_text(angle=60, hjust=1),legend.position="none") +
+      labs(x = "Date", y = NULL) + scale_x_date(date_labels = "%b %y") +
+      scale_y_continuous(position="right") + scale_color_scico_d(palette="romaO",begin = 0.1,
+                      end = 0.9)
+
+BPlot
+#ggsave(filename="04_Output/Figures_Paper/Endres_Fig7.tiff",width=190,height=140,units='mm',dpi=600)
+#A4: 297 mm x 210 mm
+```
+
+## Fig. 7
+NA
+
+## Fig. 8
+```{r Fig8}
+## Load Library
+
+library(ggplot2)
+library(lubridate)
+library(tidyverse)
+library(ggpubr)
+library(tidypaleo)
+library(tidyr)
+library(dplyr)
+library(cowplot)
+
+#library(ggbiplot)
+library(factoextra)
+library(tinytex)
+library(readxl)
+library(scico)
+library(latex2exp) 
+
+#load data
+df_climate2 <- readRDS(file="Data/LaVallina_Fluo.rds") 
+df_climate2$loc <- as.factor(df_climate2$loc)
+
+
+# Plot A
+p1 <- df_climate2 %>% mutate(loc = fct_relevel(loc, 
+                                                     "FOR","SNO", "GLO","GRA","PLA","SKY","MUS")) %>%  
+  ggplot(aes(x=as.factor(thickness),y=Comp.1+Comp.5,colour=loc))+
+  geom_boxplot() + theme_classic2() +labs(x="Cover thickness [m]",y="C1+C5")+
+  scale_color_scico_d(palette="romaO",begin = 0.1,
+                      end = 0.9)
+
+#Plot B
+p2 <- df_climate2 %>% mutate(loc = fct_relevel(loc, 
+                                                      "FOR","SNO", "GLO","GRA","PLA","SKY","MUS")) %>%
+  filter(loc %in% c("FOR","GLO","GRA","SKY","PLA")) %>%
+  ggplot(aes(x=as.numeric(d18O_locvar),y=Comp.1+Comp.5,colour=loc))+
+  geom_boxplot() + theme_minimal(base_size = 10) +labs(x=TeX("$\\delta ^{18}O$ standard deviation"),y="C1+C5",colour="drip site") +
+  scale_color_scico_d(palette="romaO",begin = 0.1,
+                      end = 0.9,drop=FALSE)+ theme_classic2()
+
+#Plot C
+p3 <- df_climate2 %>% mutate(loc = fct_relevel(loc, 
+                                                      "FOR","SNO", "GLO","GRA","PLA","SKY","MUS")) %>%
+  filter(loc %in% c("FOR","GLO","GRA","SKY","PLA")) %>%
+  ggplot(aes(x=as.numeric(d18O_locvar),y=C3_C1C5ratio,colour=loc))+
+  geom_boxplot() + theme_minimal(base_size = 10) +labs(x=TeX("$\\delta ^{18}O$ standard deviation"),y="C3:(C1+C5) ratio",colour="drip site") +
+  scale_color_scico_d(palette="romaO",begin = 0.1,
+                      end = 0.9,drop=FALSE)+ theme_classic2()
+
+
+
+library(patchwork)
+wrap_plots(p1+theme(legend.position="none",axis.text.x=element_text(angle=60, hjust=1)),
+           p2 +theme(axis.text.x=element_text(angle=60, hjust=1)),
+           p3 +theme(axis.text.x=element_text(angle=60, hjust=1)),
+           guides="collect") + plot_annotation(tag_levels = 'A')
+
+#ggsave(filename="Endres_Fig8.tiff",width=200*1.3,height=80*1.3,units='mm',dpi=600)
+
+```
+
+
+
+
