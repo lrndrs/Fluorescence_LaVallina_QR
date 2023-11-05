@@ -6,36 +6,62 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-#knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
-```
 
-## Fig. 1
-NA
-
-## Fig. 2
-## Fig. 3
-
-## Fig. 4
-```{r Fig4)}
-# Libraries needed to plot absorbance data 
-library(tidyverse)
+# Loading Libraries
 library(ggplot2)
+library(lubridate)
+library(tidyverse)
 library(ggpubr)
-library(zoo)
+library(tidypaleo)
+library(tidyr)
+library(dplyr)
+library(cowplot)
+library(latex2exp)
 library(scico)
+library(zoo)
 library(plotly)
+library(stringr)
+library(eemR)
+library(patchwork)
+library(knitr)
+library(staRdom)
+library(forcats)
+library(factoextra)
+library(tinytex)
+library(readxl)
 
-
-# Data
+#Loading Data
 aps.master <- readRDS(file="Data/APSmaster.rds")
 aps.master$loc <- as.factor(aps.master$loc)
 abs350_t <- readRDS(file="Data/abs350_t.rds")
 
+## Load EEMs
+FOR_eem <- readRDS(file="Data/EEM/FOR_eem.rds")
+SNO_eem <- readRDS(file="Data/EEM/SNO_eem.rds")
+GLO_eem <- readRDS(file="Data/EEM/GLO_eem.rds")
+GRA_eem <- readRDS(file="Data/EEM/GRA_eem.rds")
+PLA_eem <- readRDS(file="Data/EEM/PLA_eem.rds")
+SKY_eem <- readRDS(file="Data/EEM/SKY_eem.rds")
+MUS_eem <- readRDS(file="Data/EEM/MUS_eem.rds")
+
+
+#Assign Colors
 colores <- scico(7,palette="romaO",begin = 0.1,
                  end = 0.9) #Color assignment
 
-# Plotting
+```
+
+These scripts were used to produce the figures of the research article "Climatic and cave settings influence on drip water fluorescent organic matter with implications for fluorescent laminations
+in stalagmites"that were produced by R data analysis. 
+
+## Figure 2
+Figure 2. Drip water parallel factor analysis (PARAFAC) model and bedrock endmember excitation-emission matrix (EEM). (A) Drip water 5-component PARAFAC model and its spectral loadings. Fluorescence intensity is normalized to unity. Spectral loadings maxima in emission and excitation wavelengths are indicated with solid and dashed lines, respectively. (B) EEM of dissolved organic-rich bedrock. Fluorescence intensity is given in arbitrary units (a.u.). Yellow triangles indicate peak positions of drip water PARAFAC component C3 for comparison.
+
+## Figure 4
+```{r Fig4,echo=FALSE}
+
+#Slope ratio
 v <- 
   aps.master %>%
   mutate(loc = fct_relevel(loc, 
@@ -46,6 +72,7 @@ v <-
                       end = 0.9)+
   theme(axis.text.x=element_text(angle=60, hjust=1),legend.position="none")
 
+#Absorption spectra
 a <- 
   abs350_t %>% group_by(loc) %>% filter(loc %in% c("FOR","SNO", "GLO","GRA","PLA","SKY","MUS")) %>%
   summarise_all(median,na.rm=TRUE) %>% mutate(loc = fct_relevel(loc, 
@@ -59,43 +86,27 @@ a <-
   scale_color_scico_d(palette="romaO",begin = 0.1,
                       end = 0.9) + theme(legend.position = c(0.9, 0.55),
                                          legend.title=element_text(size=8), 
-                                         legend.text=element_text(size=7),
-                                         #legend.background = element_rect(fill = "white", color = "black")
+                                         legend.text=element_text(size=7)
                                          ) + scale_y_continuous(trans='sqrt')
 
-subplot(a,v,nrows=2) #alternative just for markdown
-#a/v + plot_annotation(tag_levels = 'A') 
+#Plot
+subplot(a,v,nrows=2) 
 #ggsave(filename="Endres_Fig4.tiff",height=160*1.3,width=80*1.3,units='mm',dpi=600)
 
 ```
 
-
-## Fig. 5
-Spatial variability of Fluorescence in LaVallina.
-EEMs have been pre-processed with the library eemR.
-```{r Fig. 5, echo=TRUE}
-
-### Figure Spatial Temporal variances
-## A: AVG and SD arrays
-## B: Stacked Barplot
-
-library(tidyverse)
-library(ggplot2)
-library(stringr)
-library(eemR)
-library(scico)
+Figure 4. Absorption properties of drip water samples for each sampling location. (A) Loess smoothed median absorption spectra for all locations. (B) Spectral slope ratio values for individual absorbance measurements.
 
 
-## Load EEMs
-FOR_eem <- readRDS(file="Data/EEM/FOR_eem.rds")
-SNO_eem <- readRDS(file="Data/EEM/SNO_eem.rds")
-GLO_eem <- readRDS(file="Data/EEM/GLO_eem.rds")
-GRA_eem <- readRDS(file="Data/EEM/GRA_eem.rds")
-PLA_eem <- readRDS(file="Data/EEM/PLA_eem.rds")
-SKY_eem <- readRDS(file="Data/EEM/SKY_eem.rds")
-MUS_eem <- readRDS(file="Data/EEM/MUS_eem.rds")
+## Figure 5
 
+```{r Fig. 5,echo=FALSE}
+
+# A: AVG and SD arrays
+# B: Stacked Barplot
 #Calculate AVG and SD matrices
+#Spatial variability of Fluorescence in LaVallina.
+#EEMs have been pre-processed with the library eemR.
 my.list <- list()
 for (i in 1:length(FOR_eem)){my.list[[i]]<-FOR_eem[[i]]$x}
 FOR_avg <- apply(simplify2array(my.list), 1:2, mean)
@@ -131,12 +142,9 @@ for (i in 1:length(MUS_eem)){my.list[[i]]<-MUS_eem[[i]]$x}
 MUS_avg <- apply(simplify2array(my.list), 1:2, mean)
 MUS_sd <- apply(simplify2array(my.list), 1:2, sd)
 
-
-#get colors as discrete values
-colores <- scico(7,palette="romaO",begin = 0.1,
-                 end = 0.9)
-## Calculate the plots
-###Calculate AVG ggplots (Warning messages are because Ex/Em wavelength are cut with ylim)
+###A Compute Plots for average fluorescence 
+###(Warning messages are because Ex/Em wavelength are cut with ylim)
+#FOR
 M1 <- matrix(FOR_avg,nrow=length(FOR_eem[[i]]$em),dimnames=list(FOR_eem[[i]]$em,FOR_eem[[i]]$ex))
 M2 <- as.data.frame(as.table(M1))
 M2$Ex <- as.numeric(as.character(M2$Var2))
@@ -148,9 +156,8 @@ p1 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks =
   scale_fill_scico_d(drop = FALSE,palette='batlow') +
   #scale_fill_batlow_d(drop = FALSE) +
   theme_minimal(base_size=10) + theme(plot.subtitle=element_text(hjust = 0.5),axis.title.y = element_text(colour=colores[1]))
-#p1
-#ggsave("04_Output/Plot/EEM/FOR.png")
 
+#SNO
 M1 <- matrix(SNO_avg,nrow=length(SNO_eem[[i]]$em),dimnames=list(SNO_eem[[i]]$em,SNO_eem[[i]]$ex))
 M2 <- as.data.frame(as.table(M1))
 M2$Ex <- as.numeric(as.character(M2$Var2))
@@ -161,10 +168,8 @@ p2 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks =
   xlab(expression(atop(bold("SNO (3)"), paste("Em"))))+
   scale_fill_scico_d(drop = FALSE,palette='batlow') +theme_minimal(base_size=10) +
   theme(axis.title.y = element_text(colour=colores[2]))
-#p
-# p2
-# ggsave("04_Output/Plot/EEM/SNO.png")
 
+#GLO
 M1 <- matrix(GLO_avg,nrow=length(GLO_eem[[i]]$em),dimnames=list(GLO_eem[[i]]$em,GLO_eem[[i]]$ex))
 M2 <- as.data.frame(as.table(M1))
 M2$Ex <- as.numeric(as.character(M2$Var2))
@@ -175,9 +180,8 @@ p3 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks =
   xlab(expression(atop(bold("GLO (13)"), paste("Em"))))+
   scale_fill_scico_d(drop = FALSE,palette='batlow',name = "Mean level (R.U.)") +theme_minimal(base_size=10)+
   theme(axis.title.y = element_text(colour=colores[3]))
-# p3
-# ggsave("04_Output/Plot/EEM/GLO.png")
 
+#GRA
 M1 <- matrix(GRA_avg,nrow=length(GRA_eem[[i]]$em),dimnames=list(GRA_eem[[i]]$em,GRA_eem[[i]]$ex))
 M2 <- as.data.frame(as.table(M1))
 M2$Ex <- as.numeric(as.character(M2$Var2))
@@ -188,9 +192,8 @@ p4 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks =
   xlab(expression(atop(bold("GRA (11)"), paste("Em"))))+
   scale_fill_scico_d(drop = FALSE,palette='batlow') +theme_minimal(base_size=10)+
   theme(axis.title.y = element_text(colour=colores[4]))
-# p4
-# ggsave("04_Output/Plot/EEM/GRA.png")
 
+#SKY
 M1 <- matrix(SKY_avg,nrow=length(SKY_eem[[i]]$em),dimnames=list(SKY_eem[[i]]$em,SKY_eem[[i]]$ex))
 M2 <- as.data.frame(as.table(M1))
 M2$Ex <- as.numeric(as.character(M2$Var2))
@@ -201,9 +204,8 @@ p5 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks =
   xlab(expression(atop(bold("SKY (13)"), paste("Em"))))+
   scale_fill_scico_d(drop = FALSE,palette='batlow') +theme_minimal(base_size=10)+
   theme(axis.title.y = element_text(colour=colores[6]))
-# p5
-# ggsave("04_Output/Plot/EEM/SKY.png")
 
+#PLA
 M1 <- matrix(PLA_avg,nrow=length(PLA_eem[[i]]$em),dimnames=list(PLA_eem[[i]]$em,PLA_eem[[i]]$ex))
 M2 <- as.data.frame(as.table(M1))
 M2$Ex <- as.numeric(as.character(M2$Var2))
@@ -214,9 +216,8 @@ p6 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks =
   xlab(expression(atop(bold("PLA (13)"), paste("Em"))))+
   scale_fill_scico_d(drop = FALSE,palette='batlow') +theme_minimal(base_size=10)+
   theme(axis.title.y = element_text(colour=colores[5]))
-# p6
-# ggsave("04_Output/Plot/EEM/PLA.png")
 
+#MUS
 M1 <- matrix(MUS_avg,nrow=length(MUS_eem[[i]]$em),dimnames=list(MUS_eem[[i]]$em,MUS_eem[[i]]$ex))
 M2 <- as.data.frame(as.table(M1))
 M2$Ex <- as.numeric(as.character(M2$Var2))
@@ -227,11 +228,12 @@ p7 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks =
   xlab(expression(atop(bold("MUS (3)"), paste("Em"))))+
   scale_fill_scico_d(drop = FALSE,palette='batlow') +theme_minimal(base_size=10)+
   theme(axis.title.y = element_text(colour=colores[7]),axis.text.x=element_text(angle=60, hjust=1))
-# p7
-# ggsave("04_Output/Plot/EEM/MUS.png")
 
-bl2 <- colorRampPalette(c("#00195911","#001959FF"),alpha=TRUE)(7)
 
+###B Compute Plots for SD fluorescence 
+bl2 <- colorRampPalette(c("#00195911","#001959FF"),alpha=TRUE)(7) #color palette for Standard deviation
+
+#FOR
 M1 <- matrix(FOR_sd,nrow=length(FOR_eem[[i]]$em),dimnames=list(FOR_eem[[i]]$em,FOR_eem[[i]]$ex))
 M2 <- as.data.frame(as.table(M1))
 M2$Ex <- as.numeric(as.character(M2$Var2))
@@ -242,6 +244,7 @@ q1 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0.1, breaks
   theme_minimal(base_size=10) + labs(subtitle="SD EEM") + theme(plot.subtitle = element_text(hjust = 0.5)) +
   scale_fill_manual(values=bl2,drop=FALSE)
 
+#SNO
 M1 <- matrix(SNO_sd,nrow=length(SNO_eem[[i]]$em),dimnames=list(SNO_eem[[i]]$em,SNO_eem[[i]]$ex))
 M2 <- as.data.frame(as.table(M1))
 M2$Ex <- as.numeric(as.character(M2$Var2))
@@ -252,6 +255,7 @@ q2 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks =
   theme_minimal(base_size=10) +
   scale_fill_manual(values=bl2,drop=FALSE)
 
+#GLO
 M1 <- matrix(GLO_sd,nrow=length(GLO_eem[[i]]$em),dimnames=list(GLO_eem[[i]]$em,GLO_eem[[i]]$ex))
 M2 <- as.data.frame(as.table(M1))
 M2$Ex <- as.numeric(as.character(M2$Var2))
@@ -262,6 +266,7 @@ q3 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks =
   theme_minimal(base_size=10) +
   scale_fill_manual(values=bl2,drop=FALSE,name = "SD level (R.U.)")
 
+#GRA
 M1 <- matrix(GRA_sd,nrow=length(GRA_eem[[i]]$em),dimnames=list(GRA_eem[[i]]$em,GRA_eem[[i]]$ex))
 M2 <- as.data.frame(as.table(M1))
 M2$Ex <- as.numeric(as.character(M2$Var2))
@@ -272,6 +277,7 @@ q4 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks =
   theme_minimal(base_size=10) +
   scale_fill_manual(values=bl2,drop=FALSE)
 
+#SKY
 M1 <- matrix(SKY_sd,nrow=length(SKY_eem[[i]]$em),dimnames=list(SKY_eem[[i]]$em,SKY_eem[[i]]$ex))
 M2 <- as.data.frame(as.table(M1))
 M2$Ex <- as.numeric(as.character(M2$Var2))
@@ -282,6 +288,7 @@ q5 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks =
   theme_minimal(base_size=10) +
   scale_fill_manual(values=bl2,drop=FALSE)
 
+#PLA
 M1 <- matrix(PLA_sd,nrow=length(PLA_eem[[i]]$em),dimnames=list(PLA_eem[[i]]$em,PLA_eem[[i]]$ex))
 M2 <- as.data.frame(as.table(M1))
 M2$Ex <- as.numeric(as.character(M2$Var2))
@@ -292,6 +299,7 @@ q6 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks =
   theme_minimal(base_size=10) +
   scale_fill_manual(values=bl2,drop=FALSE)
 
+#MUS
 M1 <- matrix(MUS_sd,nrow=length(MUS_eem[[i]]$em),dimnames=list(MUS_eem[[i]]$em,MUS_eem[[i]]$ex))
 M2 <- as.data.frame(as.table(M1))
 M2$Ex <- as.numeric(as.character(M2$Var2))
@@ -303,18 +311,9 @@ q7 <- ggplot(M2, aes(Em, Ex, z = Freq)) + geom_contour_filled(size = 0, breaks =
   scale_fill_manual(values=bl2,drop=FALSE)
 
 
-
 ### Compute Plot A
-library(ggpubr)  
-library(cowplot)
-library(tidyr)
 
-
-library(patchwork)
-
-#get colors as discrete values
-colores <- scico(7,palette="romaO",begin = 0.1,
-                 end = 0.9)
+colores <- scico(7,palette="romaO",begin = 0.1, end = 0.9) #colorpalette as discrete values
 
 LegendList <- list(p1 + rremove("xlab")+ rremove("x.text")+ rremove("x.ticks")+
                      theme(legend.position="none"),
@@ -352,33 +351,30 @@ LegendList <- list(p1 + rremove("xlab")+ rremove("x.text")+ rremove("x.ticks")+
                      theme(legend.position="none")
 )
 
-#Plot
-
+#A: Plot 
 APlot <- wrap_plots(LegendList,ncol = 2,nrow = 7)
-#LegendPlot <- wrap_plots(LegendList,ncol = 2,nrow = 5)
 APlot + plot_layout(guides = "collect") + 
   theme(legend.justification = "top")
-
 #ggsave(filename="Fig5A.tiff",width=120,height=220,units='mm',dpi=600)
 
 
+# B: Stacked Barplot
 ## B: stacked barplot from each location
 #load data
 library(readxl)
-df_climate2 <- readRDS(file="Data/LaVallina_Fluo.rds")
+df <- readRDS(file="Data/LaVallina_Fluo.rds")
 
 # Plot
 colores <- scico(5,palette="tofino",begin = 0.1,
                  end = 0.9)
 
 lookup <- c(C1="Comp.1",C2="Comp.2",C3="Comp.3",C4="Comp.4",C5="Comp.5")
-plotter <- df_climate2 %>% mutate(loc = fct_relevel(loc, 
+plotter <- df %>% mutate(loc = fct_relevel(loc, 
                                                "FOR","SNO", "GLO","GRA","PLA","SKY","MUS")) %>% 
   select(loc,Comp.4,Comp.2,Comp.3,Comp.5,Comp.1) %>% rename(all_of(lookup)) %>%  
   aggregate(. ~ loc,mean) %>% gather("comp","value",-loc) 
   
 plotter$comp <- as.factor(plotter$comp)  
-
 plotter %>% mutate(comp = fct_relevel(comp,"C4","C2","C3","C5","C1")) %>%  
   ggplot(aes(x=loc,y=value,fill=comp)) + xlab("Sampling location") + ylab("stacked fluorescence intensity")+labs(fill="PARAFAC \ncomponent")+
   geom_bar(position="stack", stat="identity") +theme_classic2(base_size=8)+
@@ -386,24 +382,18 @@ plotter %>% mutate(comp = fct_relevel(comp,"C4","C2","C3","C5","C1")) %>%
     scale_fill_manual(values=colores,drop=FALSE)
   
 #ggsave(filename="Fig5B.tiff",width=60,height=60,units='mm',dpi=600)
-
-
 ```
 
-## Fig. 6
-```{r Fig6, echo=TRUE}
-## Library
-library(knitr)
-library(staRdom)
-library(lubridate)
-library(forcats)
+## Figure 6
+```{r Fig6, echo=FALSE}
 
 df <- readRDS(file="Data/LaVallina_Fluo.rds") 
 #df$Al_ppm <- as.numeric(df$Al_ppm)
-df$lubridate <- dmy(df$datee)
+#df$lubridate <- dmy(df$datee)
 
 df_long <- df %>% gather("param","value",-lubridate,-loc)
 
+#Define new variable names
 var2_names <- c(
   Comp.1 = "C1 (\"humic-like\")" ,
   Comp.2 = "C2 (\"tyrosine-like\")" ,
@@ -426,7 +416,7 @@ var2_names <- c(
   a300 = "a300_stardom"
 )
 
-
+#Functions to rename variables
 variable_labeller <- function(variable,value){
   return(variable_names[value])
 }
@@ -436,7 +426,7 @@ capitalize <- function(string) {
   string
 }
 
-# Vegetation gradient (defines Symbol in Plot)
+# Compute vegetation gradient (defines Symbol in Plot)
 df_long$loc <- as.factor(df_long$loc)
 df_long$veggradient <- 0
 df_long[df_long$loc %in% c("FOR","SNO"),]$veggradient <- "F"#Forest  
@@ -444,7 +434,7 @@ df_long[df_long$loc %in% c("GLO","GRA"),]$veggradient <- "B" #Bush
 df_long[df_long$loc %in% c("PLA","SKY","MUS"),]$veggradient <- "P" #Pasture
 
 
-BPlot <- df_long %>% 
+A <- df_long %>% 
   filter(param %in% c("Comp.1","Comp.2","Comp.3","Comp.4","Comp.5")) %>%
   mutate(loc = fct_relevel(loc, 
                            "FOR","SNO", "GLO","GRA","PLA","SKY","MUS"),
@@ -461,41 +451,21 @@ BPlot <- df_long %>%
       scale_y_continuous(position="right") + scale_color_scico_d(palette="romaO",begin = 0.1,
                       end = 0.9)
 
-BPlot
-#ggsave(filename="04_Output/Figures_Paper/Endres_Fig7.tiff",width=190,height=140,units='mm',dpi=600)
+A
+#ggsave(filename="04_Output/Figures_Paper/Endres_Fig6.tiff",width=190,height=140,units='mm',dpi=600)
 #A4: 297 mm x 210 mm
 ```
 
-## Fig. 7
-NA
+Figure 6. Temporal evolution of the 5 components of the PARAFAC model throughout the monitored period at each site. Each component y axis is given in nor- malized PARAFAC fluorescence intensity.
 
-## Fig. 8
-```{r Fig8}
-## Load Library
+## Figure 8
+```{r Fig8, echo=FALSE}
 
-library(ggplot2)
-library(lubridate)
-library(tidyverse)
-library(ggpubr)
-library(tidypaleo)
-library(tidyr)
-library(dplyr)
-library(cowplot)
-
-#library(ggbiplot)
-library(factoextra)
-library(tinytex)
-library(readxl)
-library(scico)
-library(latex2exp) 
-
-#load data
-df_climate2 <- readRDS(file="Data/LaVallina_Fluo.rds") 
-df_climate2$loc <- as.factor(df_climate2$loc)
-
+#Data
+df <- readRDS(file="Data/LaVallina_Fluo.rds") 
 
 # Plot A
-p1 <- df_climate2 %>% mutate(loc = fct_relevel(loc, 
+p1 <- df %>% mutate(loc = fct_relevel(loc, 
                                                      "FOR","SNO", "GLO","GRA","PLA","SKY","MUS")) %>%  
   ggplot(aes(x=as.factor(thickness),y=Comp.1+Comp.5,colour=loc))+
   geom_boxplot() + theme_classic2() +labs(x="Cover thickness [m]",y="C1+C5")+
@@ -503,7 +473,7 @@ p1 <- df_climate2 %>% mutate(loc = fct_relevel(loc,
                       end = 0.9)
 
 #Plot B
-p2 <- df_climate2 %>% mutate(loc = fct_relevel(loc, 
+p2 <- df %>% mutate(loc = fct_relevel(loc, 
                                                       "FOR","SNO", "GLO","GRA","PLA","SKY","MUS")) %>%
   filter(loc %in% c("FOR","GLO","GRA","SKY","PLA")) %>%
   ggplot(aes(x=as.numeric(d18O_locvar),y=Comp.1+Comp.5,colour=loc))+
@@ -512,7 +482,7 @@ p2 <- df_climate2 %>% mutate(loc = fct_relevel(loc,
                       end = 0.9,drop=FALSE)+ theme_classic2()
 
 #Plot C
-p3 <- df_climate2 %>% mutate(loc = fct_relevel(loc, 
+p3 <- df %>% mutate(loc = fct_relevel(loc, 
                                                       "FOR","SNO", "GLO","GRA","PLA","SKY","MUS")) %>%
   filter(loc %in% c("FOR","GLO","GRA","SKY","PLA")) %>%
   ggplot(aes(x=as.numeric(d18O_locvar),y=C3_C1C5ratio,colour=loc))+
@@ -520,8 +490,7 @@ p3 <- df_climate2 %>% mutate(loc = fct_relevel(loc,
   scale_color_scico_d(palette="romaO",begin = 0.1,
                       end = 0.9,drop=FALSE)+ theme_classic2()
 
-
-
+#Create combined plot
 library(patchwork)
 wrap_plots(p1+theme(legend.position="none",axis.text.x=element_text(angle=60, hjust=1)),
            p2 +theme(axis.text.x=element_text(angle=60, hjust=1)),
@@ -532,6 +501,7 @@ wrap_plots(p1+theme(legend.position="none",axis.text.x=element_text(angle=60, hj
 
 ```
 
+Figure 8. Overview of the relationship between fluorescence and cave settings. (A) Comparison of the summed C1 and C5 (humic-like and fulvic-like) components plotted versus ascending thickness of bedrock cover over the drip water sampling site. (B) Comparison of summed C1 and C5 components plotted versus the drip water δ18O variance. (C) Comparison of the ratio of C3/(C1+C5), interpreted as the ratio of reworked or fossil components to humic-like and fulvic-like components, plotted against the drip water δ18O variance. The δ18O variance is computed from data in Kost et al. (2023) and is thought to increase for shorter drip water residence times.
 ## Fig. 9
 ```{r}
 
@@ -551,17 +521,18 @@ library(tinytex)
 
 
 #load data
-df_climate2 <- readRDS(file="Data/LaVallina_Fluo.rds")
+df <- readRDS(file="Data/LaVallina_Fluo.rds")
 
+#selected locations
 locs <- c("FOR","GLO","GRA","PLA","SKY")
 
-df_climate2$maxdr <- -1
+df$maxdr <- -1
 for (l in 1:5){
-  df_climate2$maxdr[df_climate2$loc==locs[l]] <- df_climate2 %>% filter(loc==locs[l]) %>% select(driprate) %>% max(na.rm=TRUE)
+  df$maxdr[df$loc==locs[l]] <- df %>% filter(loc==locs[l]) %>% select(driprate) %>% max(na.rm=TRUE)
 }
 
-df_climate2$normdr <- df_climate2$driprate/df_climate2$maxdr
-ggplot(df_climate2,aes(x=lubridate,y=normdr,colour=loc)) + geom_line()
+df$normdr <- df$driprate/df$maxdr
+ggplot(df,aes(x=lubridate,y=normdr,colour=loc)) + geom_line()
 
 ##--- Load data
 ### One plot per location,t first, then rain, then driprate
@@ -569,36 +540,36 @@ ggplot(df_climate2,aes(x=lubridate,y=normdr,colour=loc)) + geom_line()
 #GRA
 tests <- data.frame(cat=NA,value=NA)
 f <- factor(levels=c("T_10d cold","T_10d warm"))
-mm <- levels(as.factor(df_climate2$T_10d))
+mm <- levels(as.factor(df$T_10d))
 
-C4_low <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C4_low <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(T_10d,Comp.4,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.4) 
 
-C2_low <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C2_low <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(T_10d,Comp.2,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.2,loc) 
 
-C3_low <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C3_low <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(T_10d,Comp.3,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.3,loc) 
 
-C1_low <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C1_low <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(T_10d,Comp.1,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.1,loc) 
 
-C5_low <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C5_low <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(T_10d,Comp.5,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.5,loc) 
 
-C4_high <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C4_high <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(T_10d,Comp.4,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.4,loc) 
 
-C2_high <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C2_high <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(T_10d,Comp.2,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.2,loc) 
 
-C3_high <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C3_high <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(T_10d,Comp.3,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.3,loc) 
 
-C1_high <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C1_high <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(T_10d,Comp.1,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.1,loc) 
 
-C5_high <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C5_high <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(T_10d,Comp.5,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.5,loc) 
 
 
@@ -627,36 +598,36 @@ t1 <- T_GRA %>% gather("param","value",-cat) %>%
 #GLO
 tests <- data.frame(cat=NA,value=NA)
 f <- factor(levels=c("T_10d cold","T_10d warm"))
-mm <- levels(as.factor(df_climate2$T_10d))
+mm <- levels(as.factor(df$T_10d))
 
-C4_low <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C4_low <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(T_10d,Comp.4,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.4) 
 
-C2_low <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C2_low <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(T_10d,Comp.2,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.2,loc) 
 
-C3_low <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C3_low <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(T_10d,Comp.3,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.3,loc) 
 
-C1_low <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C1_low <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(T_10d,Comp.1,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.1,loc) 
 
-C5_low <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C5_low <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(T_10d,Comp.5,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.5,loc) 
 
-C4_high <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C4_high <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(T_10d,Comp.4,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.4,loc) 
 
-C2_high <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C2_high <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(T_10d,Comp.2,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.2,loc) 
 
-C3_high <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C3_high <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(T_10d,Comp.3,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.3,loc) 
 
-C1_high <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C1_high <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(T_10d,Comp.1,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.1,loc) 
 
-C5_high <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C5_high <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(T_10d,Comp.5,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.5,loc) 
 
 
@@ -685,36 +656,36 @@ t2 <- T_GLO  %>% gather("param","value",-cat) %>%
 #SKY
 tests <- data.frame(cat=NA,value=NA)
 f <- factor(levels=c("T_10d cold","T_10d warm"))
-mm <- levels(as.factor(df_climate2$T_10d))
+mm <- levels(as.factor(df$T_10d))
 
-C4_low <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C4_low <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(T_10d,Comp.4,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.4) 
 
-C2_low <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C2_low <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(T_10d,Comp.2,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.2,loc) 
 
-C3_low <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C3_low <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(T_10d,Comp.3,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.3,loc) 
 
-C1_low <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C1_low <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(T_10d,Comp.1,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.1,loc) 
 
-C5_low <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C5_low <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(T_10d,Comp.5,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.5,loc) 
 
-C4_high <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C4_high <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(T_10d,Comp.4,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.4,loc) 
 
-C2_high <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C2_high <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(T_10d,Comp.2,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.2,loc) 
 
-C3_high <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C3_high <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(T_10d,Comp.3,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.3,loc) 
 
-C1_high <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C1_high <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(T_10d,Comp.1,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.1,loc) 
 
-C5_high <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C5_high <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(T_10d,Comp.5,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.5,loc) 
 
 
@@ -745,36 +716,36 @@ t3 <- T_SKY  %>% gather("param","value",-cat) %>%
 #FOR
 tests <- data.frame(cat=NA,value=NA)
 f <- factor(levels=c("T_10d cold","T_10d warm"))
-mm <- levels(as.factor(df_climate2$T_10d))
+mm <- levels(as.factor(df$T_10d))
 
-C4_low <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C4_low <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(T_10d,Comp.4,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.4) 
 
-C2_low <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C2_low <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(T_10d,Comp.2,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.2,loc) 
 
-C3_low <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C3_low <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(T_10d,Comp.3,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.3,loc) 
 
-C1_low <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C1_low <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(T_10d,Comp.1,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.1,loc) 
 
-C5_low <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C5_low <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(T_10d,Comp.5,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.5,loc) 
 
-C4_high <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C4_high <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(T_10d,Comp.4,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.4,loc) 
 
-C2_high <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C2_high <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(T_10d,Comp.2,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.2,loc) 
 
-C3_high <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C3_high <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(T_10d,Comp.3,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.3,loc) 
 
-C1_high <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C1_high <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(T_10d,Comp.1,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.1,loc) 
 
-C5_high <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C5_high <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(T_10d,Comp.5,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.5,loc) 
 
 
@@ -804,36 +775,36 @@ t4 <- T_FOR  %>% gather("param","value",-cat) %>%
 #PLA
 tests <- data.frame(cat=NA,value=NA)
 f <- factor(levels=c("T_10d cold","T_10d warm"))
-mm <- levels(as.factor(df_climate2$T_10d))
+mm <- levels(as.factor(df$T_10d))
 
-C4_low <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C4_low <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(T_10d,Comp.4,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.4) 
 
-C2_low <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C2_low <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(T_10d,Comp.2,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.2,loc) 
 
-C3_low <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C3_low <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(T_10d,Comp.3,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.3,loc) 
 
-C1_low <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C1_low <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(T_10d,Comp.1,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.1,loc) 
 
-C5_low <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C5_low <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(T_10d,Comp.5,loc) %>% group_by(loc) %>% slice_min(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.5,loc) 
 
-C4_high <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C4_high <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(T_10d,Comp.4,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.4,loc) 
 
-C2_high <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C2_high <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(T_10d,Comp.2,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.2,loc) 
 
-C3_high <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C3_high <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(T_10d,Comp.3,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.3,loc) 
 
-C1_high <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C1_high <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(T_10d,Comp.1,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.1,loc) 
 
-C5_high <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C5_high <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(T_10d,Comp.5,loc) %>% group_by(loc) %>% slice_max(order_by = T_10d,n=floor(length(mm)/2)) %>% dplyr::select(Comp.5,loc) 
 
 
@@ -865,36 +836,36 @@ t5 <- T_PLA  %>% gather("param","value",-cat) %>%
 #GRA
 tests <- data.frame(cat=NA,value=NA)
 f <- factor(levels=c("P_10d dry","P_10d wet"))
-mm <- levels(as.factor(df_climate2$P_10d))
+mm <- levels(as.factor(df$P_10d))
 
-C4_low <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C4_low <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(P_10d,Comp.4,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.4) 
 
-C2_low <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C2_low <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(P_10d,Comp.2,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.2,loc) 
 
-C3_low <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C3_low <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(P_10d,Comp.3,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.3,loc) 
 
-C1_low <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C1_low <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(P_10d,Comp.1,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.1,loc) 
 
-C5_low <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C5_low <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(P_10d,Comp.5,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.5,loc) 
 
-C4_high <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C4_high <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(P_10d,Comp.4,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.4,loc) 
 
-C2_high <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C2_high <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(P_10d,Comp.2,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.2,loc) 
 
-C3_high <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C3_high <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(P_10d,Comp.3,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.3,loc) 
 
-C1_high <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C1_high <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(P_10d,Comp.1,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.1,loc) 
 
-C5_high <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C5_high <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(P_10d,Comp.5,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.5,loc) 
 
 
@@ -921,36 +892,36 @@ b1 <- P_GRA %>% gather("param","value",-cat) %>%
 #GLO
 tests <- data.frame(cat=NA,value=NA)
 f <- factor(levels=c("P_10d dry","P_10d wet"))
-mm <- levels(as.factor(df_climate2$P_10d))
+mm <- levels(as.factor(df$P_10d))
 
-C4_low <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C4_low <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(P_10d,Comp.4,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.4) 
 
-C2_low <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C2_low <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(P_10d,Comp.2,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.2,loc) 
 
-C3_low <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C3_low <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(P_10d,Comp.3,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.3,loc) 
 
-C1_low <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C1_low <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(P_10d,Comp.1,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.1,loc) 
 
-C5_low <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C5_low <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(P_10d,Comp.5,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.5,loc) 
 
-C4_high <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C4_high <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(P_10d,Comp.4,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.4,loc) 
 
-C2_high <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C2_high <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(P_10d,Comp.2,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.2,loc) 
 
-C3_high <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C3_high <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(P_10d,Comp.3,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.3,loc) 
 
-C1_high <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C1_high <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(P_10d,Comp.1,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.1,loc) 
 
-C5_high <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C5_high <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(P_10d,Comp.5,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.5,loc) 
 
 
@@ -977,36 +948,36 @@ b2 <- P_GLO  %>% gather("param","value",-cat) %>%
 #SKY
 tests <- data.frame(cat=NA,value=NA)
 f <- factor(levels=c("P_10d dry","P_10d wet"))
-mm <- levels(as.factor(df_climate2$P_10d))
+mm <- levels(as.factor(df$P_10d))
 
-C4_low <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C4_low <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(P_10d,Comp.4,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.4) 
 
-C2_low <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C2_low <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(P_10d,Comp.2,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.2,loc) 
 
-C3_low <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C3_low <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(P_10d,Comp.3,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.3,loc) 
 
-C1_low <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C1_low <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(P_10d,Comp.1,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.1,loc) 
 
-C5_low <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C5_low <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(P_10d,Comp.5,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.5,loc) 
 
-C4_high <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C4_high <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(P_10d,Comp.4,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.4,loc) 
 
-C2_high <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C2_high <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(P_10d,Comp.2,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.2,loc) 
 
-C3_high <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C3_high <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(P_10d,Comp.3,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.3,loc) 
 
-C1_high <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C1_high <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(P_10d,Comp.1,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.1,loc) 
 
-C5_high <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C5_high <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(P_10d,Comp.5,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.5,loc) 
 
 
@@ -1035,36 +1006,36 @@ b3 <- P_SKY  %>% gather("param","value",-cat) %>%
 #FOR
 tests <- data.frame(cat=NA,value=NA)
 f <- factor(levels=c("P_10d dry","P_10d wet"))
-mm <- levels(as.factor(df_climate2$P_10d))
+mm <- levels(as.factor(df$P_10d))
 
-C4_low <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C4_low <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(P_10d,Comp.4,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.4) 
 
-C2_low <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C2_low <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(P_10d,Comp.2,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.2,loc) 
 
-C3_low <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C3_low <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(P_10d,Comp.3,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.3,loc) 
 
-C1_low <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C1_low <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(P_10d,Comp.1,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.1,loc) 
 
-C5_low <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C5_low <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(P_10d,Comp.5,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.5,loc) 
 
-C4_high <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C4_high <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(P_10d,Comp.4,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.4,loc) 
 
-C2_high <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C2_high <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(P_10d,Comp.2,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.2,loc) 
 
-C3_high <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C3_high <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(P_10d,Comp.3,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.3,loc) 
 
-C1_high <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C1_high <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(P_10d,Comp.1,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.1,loc) 
 
-C5_high <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C5_high <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(P_10d,Comp.5,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.5,loc) 
 
 
@@ -1092,36 +1063,36 @@ b4 <- P_FOR  %>% gather("param","value",-cat) %>%
 #PLA
 tests <- data.frame(cat=NA,value=NA)
 f <- factor(levels=c("P_10d dry","P_10d wet"))
-mm <- levels(as.factor(df_climate2$P_10d))
+mm <- levels(as.factor(df$P_10d))
 
-C4_low <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C4_low <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(P_10d,Comp.4,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.4) 
 
-C2_low <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C2_low <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(P_10d,Comp.2,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.2,loc) 
 
-C3_low <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C3_low <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(P_10d,Comp.3,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.3,loc) 
 
-C1_low <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C1_low <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(P_10d,Comp.1,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.1,loc) 
 
-C5_low <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C5_low <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(P_10d,Comp.5,loc) %>% group_by(loc) %>% slice_min(order_by = P_10d,n=4) %>% dplyr::select(Comp.5,loc) 
 
-C4_high <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C4_high <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(P_10d,Comp.4,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.4,loc) 
 
-C2_high <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C2_high <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(P_10d,Comp.2,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.2,loc) 
 
-C3_high <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C3_high <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(P_10d,Comp.3,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.3,loc) 
 
-C1_high <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C1_high <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(P_10d,Comp.1,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.1,loc) 
 
-C5_high <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C5_high <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(P_10d,Comp.5,loc) %>% group_by(loc) %>% slice_max(order_by = P_10d,n=4) %>% dplyr::select(Comp.5,loc) 
 
 
@@ -1160,36 +1131,36 @@ wrap_plots(list(b4,b2,b1,b5,b3),guides="collect")
 #GRA
 tests <- data.frame(cat=NA,value=NA)
 f <- factor(levels=c("drip low","drip high")) 
-mm <- levels(as.factor(df_climate2$normdr[df_climate2$loc %in% locs]))
+mm <- levels(as.factor(df$normdr[df$loc %in% locs]))
 
-C4_low <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C4_low <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(normdr,Comp.4,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.4) 
 
-C2_low <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C2_low <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(normdr,Comp.2,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.2,loc) 
 
-C3_low <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C3_low <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(normdr,Comp.3,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.3,loc) 
 
-C1_low <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C1_low <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(normdr,Comp.1,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.1,loc) 
 
-C5_low <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C5_low <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(normdr,Comp.5,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.5,loc) 
 
-C4_high <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C4_high <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(normdr,Comp.4,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.4,loc) 
 
-C2_high <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C2_high <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(normdr,Comp.2,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.2,loc) 
 
-C3_high <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C3_high <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(normdr,Comp.3,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.3,loc) 
 
-C1_high <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C1_high <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(normdr,Comp.1,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.1,loc) 
 
-C5_high <- df_climate2 %>% filter(loc %in% c("GRA")) %>%
+C5_high <- df %>% filter(loc %in% c("GRA")) %>%
   dplyr::select(normdr,Comp.5,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.5,loc) 
 
 
@@ -1218,36 +1189,36 @@ d1 <- P_GRA %>% gather("param","value",-cat) %>%
 #GLO
 tests <- data.frame(cat=NA,value=NA)
 f <- factor(levels=c("drip low","drip high"))
-mm <- levels(as.factor(df_climate2$normdr[df_climate2$loc %in% locs]))
+mm <- levels(as.factor(df$normdr[df$loc %in% locs]))
 
-C4_low <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C4_low <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(normdr,Comp.4,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.4) 
 
-C2_low <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C2_low <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(normdr,Comp.2,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.2,loc) 
 
-C3_low <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C3_low <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(normdr,Comp.3,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.3,loc) 
 
-C1_low <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C1_low <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(normdr,Comp.1,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.1,loc) 
 
-C5_low <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C5_low <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(normdr,Comp.5,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.5,loc) 
 
-C4_high <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C4_high <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(normdr,Comp.4,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.4,loc) 
 
-C2_high <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C2_high <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(normdr,Comp.2,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.2,loc) 
 
-C3_high <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C3_high <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(normdr,Comp.3,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.3,loc) 
 
-C1_high <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C1_high <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(normdr,Comp.1,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.1,loc) 
 
-C5_high <- df_climate2 %>% filter(loc %in% c("GLO")) %>%
+C5_high <- df %>% filter(loc %in% c("GLO")) %>%
   dplyr::select(normdr,Comp.5,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.5,loc) 
 
 
@@ -1278,36 +1249,36 @@ d2 <- P_GLO  %>% gather("param","value",-cat) %>%
 #SKY
 tests <- data.frame(cat=NA,value=NA)
 f <- factor(levels=c("drip low","drip high"))
-mm <- levels(as.factor(df_climate2$normdr[df_climate2$loc %in% locs]))
+mm <- levels(as.factor(df$normdr[df$loc %in% locs]))
 
-C4_low <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C4_low <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(normdr,Comp.4,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.4) 
 
-C2_low <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C2_low <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(normdr,Comp.2,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.2,loc) 
 
-C3_low <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C3_low <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(normdr,Comp.3,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.3,loc) 
 
-C1_low <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C1_low <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(normdr,Comp.1,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.1,loc) 
 
-C5_low <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C5_low <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(normdr,Comp.5,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.5,loc) 
 
-C4_high <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C4_high <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(normdr,Comp.4,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.4,loc) 
 
-C2_high <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C2_high <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(normdr,Comp.2,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.2,loc) 
 
-C3_high <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C3_high <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(normdr,Comp.3,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.3,loc) 
 
-C1_high <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C1_high <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(normdr,Comp.1,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.1,loc) 
 
-C5_high <- df_climate2 %>% filter(loc %in% c("SKY")) %>%
+C5_high <- df %>% filter(loc %in% c("SKY")) %>%
   dplyr::select(normdr,Comp.5,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.5,loc) 
 
 
@@ -1337,36 +1308,36 @@ d3 <- P_SKY  %>% gather("param","value",-cat) %>%
 #FOR
 tests <- data.frame(cat=NA,value=NA)
 f <- factor(levels=c("drip low","drip high"))
-mm <- levels(as.factor(df_climate2$normdr[df_climate2$loc %in% locs]))
+mm <- levels(as.factor(df$normdr[df$loc %in% locs]))
 
-C4_low <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C4_low <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(normdr,Comp.4,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.4) 
 
-C2_low <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C2_low <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(normdr,Comp.2,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.2,loc) 
 
-C3_low <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C3_low <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(normdr,Comp.3,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.3,loc) 
 
-C1_low <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C1_low <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(normdr,Comp.1,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.1,loc) 
 
-C5_low <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C5_low <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(normdr,Comp.5,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.5,loc) 
 
-C4_high <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C4_high <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(normdr,Comp.4,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.4,loc) 
 
-C2_high <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C2_high <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(normdr,Comp.2,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.2,loc) 
 
-C3_high <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C3_high <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(normdr,Comp.3,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.3,loc) 
 
-C1_high <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C1_high <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(normdr,Comp.1,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.1,loc) 
 
-C5_high <- df_climate2 %>% filter(loc %in% c("FOR")) %>%
+C5_high <- df %>% filter(loc %in% c("FOR")) %>%
   dplyr::select(normdr,Comp.5,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.5,loc) 
 
 
@@ -1395,36 +1366,36 @@ d4 <- P_FOR  %>% gather("param","value",-cat) %>%
 #PLA
 tests <- data.frame(cat=NA,value=NA)
 f <- factor(levels=c("drip low","drip high"))
-mm <- levels(as.factor(df_climate2$normdr[df_climate2$loc %in% locs]))
+mm <- levels(as.factor(df$normdr[df$loc %in% locs]))
 
-C4_low <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C4_low <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(normdr,Comp.4,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.4) 
 
-C2_low <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C2_low <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(normdr,Comp.2,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.2,loc) 
 
-C3_low <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C3_low <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(normdr,Comp.3,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.3,loc) 
 
-C1_low <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C1_low <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(normdr,Comp.1,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.1,loc) 
 
-C5_low <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C5_low <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(normdr,Comp.5,loc) %>% group_by(loc) %>% slice_min(order_by = normdr,n=4) %>% dplyr::select(Comp.5,loc) 
 
-C4_high <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C4_high <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(normdr,Comp.4,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.4,loc) 
 
-C2_high <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C2_high <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(normdr,Comp.2,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.2,loc) 
 
-C3_high <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C3_high <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(normdr,Comp.3,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.3,loc) 
 
-C1_high <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C1_high <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(normdr,Comp.1,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.1,loc) 
 
-C5_high <- df_climate2 %>% filter(loc %in% c("PLA")) %>%
+C5_high <- df %>% filter(loc %in% c("PLA")) %>%
   dplyr::select(normdr,Comp.5,loc) %>% group_by(loc) %>% slice_max(order_by = normdr,n=4) %>% dplyr::select(Comp.5,loc) 
 
 
@@ -1490,6 +1461,42 @@ ggsave(filename="Endres_Fig8.tiff",width=200*1.3,height=100*1.3,units='mm',dpi=6
 
 
 ```
+
+## Fig. 10
+
+```{r Fig10}
+
+
+
+#load data
+df <- readRDS(file="Data/LaVallina_Fluo.rds")
+
+
+# Plot
+plotter <- df %>% gather("param","value",-c(loc,Sr_ppm,Cu_ppm,drip_d13C_DIC)) %>%
+  filter(param %in% c("Comp.1","Comp.3","C3_C5C1ratio","C2andC4")) %>%
+  gather("te","te_value",-c(loc,param,value)) %>%
+  mutate(loc = fct_relevel(loc, 
+                           "FOR","SNO", "GLO","GRA","PLA","SKY","MUS"),
+         param=fct_relevel(param,"Comp.1","Comp.3","C3_C5C1ratio","C2andC4")) 
+
+plotter$param <- factor(plotter$param,levels = c("Comp.1","Comp.3","C3_C5C1ratio","C2andC4"),
+                        labels = c("C1 (\"humic-like\")","C3 (\"fossil-like\")","C3/(C5+C1)", "C2+C4 (\"protein-like\")"))
+
+plotter$te <- factor(plotter$te,levels = c("drip_d13C_DIC","Sr_ppm","Cu_ppm"),
+                     labels = c( "d13C drip water","Sr (ppm)","Cu (ppm)"))
+
+plotter %>%
+  ggplot(aes(x=te_value,y=as.numeric(value))) + geom_point(mapping=aes(color=loc),size=0.8) +
+  facet_wrap(te ~ param, scales = "free",ncol=4)+theme_classic(base_size=8) +
+  scale_color_scico_d(palette="romaO",begin = 0.1,
+                      end = 0.9) +
+  xlab("Drip water chemistry value") + ylab("Fluorescence intensity value") + labs(color="drip site")
+
+#ggsave(filename="Endres_Fig10.tiff",width=190,height=140,units='mm',dpi=600)
+```
+
+
 
 
 
